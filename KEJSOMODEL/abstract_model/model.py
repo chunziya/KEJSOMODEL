@@ -1,4 +1,6 @@
-from keras.layers.core import Dense, Dropout
+from keras.callbacks import ModelCheckpoint
+from keras.layers import CuDNNLSTM, Bidirectional, GlobalMaxPooling1D
+from keras.layers.core import Dense, Dropout, SpatialDropout1D
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM
 from keras.preprocessing import sequence
@@ -109,13 +111,14 @@ def train_lstm(n_symbols, embedding_weights, x_train, y_train, x_test, y_test):
     model = Sequential()  # or Graph or whatever
     model.add(Embedding(n_symbols,
                         word_dim,
-                        mask_zero=True,
+                        mask_zero=False,
                         weights=[embedding_weights],
                         input_length=max_len,
                         trainable=False))  # Adding Input Length
-    model.add(LSTM(hidden_size, activation='relu'))
-    model.add(LSTM(hidden_size, activation='relu'))
-    model.add(Dropout(0.5))
+    model.add(SpatialDropout1D(0.4))
+    model.add(Bidirectional(CuDNNLSTM(hidden_size, return_sequences=True)))
+    model.add(Bidirectional(CuDNNLSTM(hidden_size, return_sequences=True)))
+    model.add(GlobalMaxPooling1D())
     model.add(Dense(128))
     model.add(Dense(69, activation='softmax'))
     model.summary()
@@ -124,21 +127,19 @@ def train_lstm(n_symbols, embedding_weights, x_train, y_train, x_test, y_test):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     print("Train...")
+    model_chechpoint = ModelCheckpoint('out/czc_model_40.h5', save_best_only=True, save_weights_only=False)
     model.fit(x_train, y_train,
               batch_size=batch_size,
               epochs=epoch,
               verbose=1,
-              validation_data=(x_test, y_test))
+              validation_data=(x_test, y_test),
+              callbacks=[model_chechpoint])
 
     print("Evaluate...")
     score = model.evaluate(x_test, y_test,
                            batch_size=batch_size)
-
-    yaml_string = model.to_yaml()
-    with open('out/lstm.yml', 'w') as outfile:
-        outfile.write(yaml.dump(yaml_string, default_flow_style=True))
-    model.save_weights('out/lstm.h5')
     print('Test score:', score)
+
 
 
 # 训练模型，并保存
