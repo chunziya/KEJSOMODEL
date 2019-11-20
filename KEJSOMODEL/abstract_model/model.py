@@ -27,27 +27,27 @@ batch_size = 512
 epoch = 10
 
 
-def to_one_hot(labels, dimension=69):
-    results = dict()
-    # results = np.zeros((len(labels), dimension))
-    for i, label in enumerate(labels):
-        results[label] = np.zeros(dimension)
-        results[label][i] = 1.
-    return results
+# def to_one_hot(labels, dimension=69):
+#     results = dict()
+#     # results = np.zeros((len(labels), dimension))
+#     for i, label in enumerate(labels):
+#         results[label] = np.zeros(dimension)
+#         results[label][i] = 1.
+#     return results
 
 
 # 加载训练文件
 def loadfile():
     f = open("data/data_5000/abstract_5000.json")
     data_set = np.array(json.load(f))
-    print(data_set[:, 1][0])
-    labels_dict = to_one_hot(list(set(data_set[:, 2])))
+    labels_dict = json.load(open("out/labels_dict.json", 'r'))
     # 训练数据分词
-    combined = [jieba.lcut(document.replace(' ', '').replace('\n', '').replace('\r', '')) for document in data_set[:, 1]
+    combined = [jieba.lcut(document) for document in data_set[:, 1]
                 if document != ""]
     # 标签向量化
     y = [labels_dict[a[2]] for a in data_set if a[1] != ""]
     return np.array(combined), np.array(y)
+
 
 
 def create_dictionaries(model=None, combined=None):
